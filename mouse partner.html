@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小鼠基因配型管理系统</title>
+<style>
+:root {
+  --bg:#f6f8f5; --bg-card:#fff; --primary:#5b8c5a; --primary-light:#eaf4ea; --primary-dark:#4a7a49;
+  --accent:#5b7fbf; --accent-light:#eef3fb; --text:#2c3e50; --text-light:#6b7f8c; --text-lighter:#95a5a6;
+  --border:#e2e8e4; --border-light:#eef2ed; --female:#e8a0bf; --female-light:#fdf2f7;
+  --male:#a0c4e8; --male-light:#f0f6fb; --warning:#e67e22; --danger:#e74c3c; --danger-light:#fdedec;
+  --success:#27ae60; --shadow-sm:0 1px 3px rgba(0,0,0,.06); --shadow-md:0 4px 12px rgba(0,0,0,.08);
+  --shadow-lg:0 8px 30px rgba(0,0,0,.12); --radius-sm:6px; --radius-md:10px; --radius-lg:16px; --transition:0.2s ease;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}
+.header{background:#fff;border-bottom:1px solid var(--border);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:64px;box-shadow:var(--shadow-sm);position:sticky;top:0;z-index:100}
+.header-brand{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;color:var(--primary-dark)}
+.header-brand .icon{font-size:24px}
+.header-actions{display:flex;gap:8px;align-items:center}
+.nav-tabs{display:flex;gap:4px;background:#fff;padding:0 32px;border-bottom:1px solid var(--border-light)}
+.nav-tab{padding:12px 20px;border:none;background:none;font-size:14px;color:var(--text-light);cursor:pointer;border-bottom:2px solid transparent;transition:var(--transition);font-weight:500;white-space:nowrap}
+.nav-tab:hover{color:var(--primary)}
+.nav-tab.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:600}
+.main{max-width:1200px;margin:0 auto;padding:24px 32px}
+.tab-panel{display:none}
+.tab-panel.active{display:block;animation:fadeIn .25s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.card{background:var(--bg-card);border-radius:var(--radius-md);padding:24px;box-shadow:var(--shadow-sm);border:1px solid var(--border-light);margin-bottom:20px}
+.card-header{font-size:16px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px;color:var(--text)}
+.card-header .icon{font-size:20px}
+.card-subtitle{font-size:13px;color:var(--text-light);font-weight:400;margin-left:4px}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-group label{font-size:13px;font-weight:600;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px}
+.form-group input,.form-group select{padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;color:var(--text);background:#fff;transition:var(--transition);font-family:inherit}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light)}
+.form-group input::placeholder{color:var(--text-lighter)}
+.btn{padding:10px 18px;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;transition:var(--transition);font-family:inherit;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-dark)}
+.btn-accent{background:var(--accent);color:#fff}.btn-accent:hover{background:#4a6fa8}
+.btn-outline{background:#fff;color:var(--primary);border:1.5px solid var(--primary)}.btn-outline:hover{background:var(--primary-light)}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-danger{background:var(--danger);color:#fff}.btn-danger:hover{background:#c0392b}
+.btn-ghost{background:none;color:var(--text-light);padding:6px 10px}.btn-ghost:hover{background:var(--bg);color:var(--text)}
+.btn-group{display:flex;gap:8px;flex-wrap:wrap}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+thead th{text-align:left;padding:12px 14px;font-size:12px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--border);white-space:nowrap}
+tbody td{padding:11px 14px;border-bottom:1px solid var(--border-light);vertical-align:middle}
+tbody tr:hover{background:var(--bg)}
+.tag{display:inline-block;padding:3px 10px;border-radius:100px;font-size:12px;font-weight:600}
+.tag-female{background:var(--female-light);color:#c0398b}
+.tag-male{background:var(--male-light);color:#2c6fb5}
+.tag-unknown{background:#f5f5f5;color:#888}
+.tag-genotype{background:var(--primary-light);color:var(--primary-dark);font-family:'SF Mono','Consolas',monospace;letter-spacing:1px}
+.gene-list{display:flex;flex-wrap:wrap;gap:12px}
+.gene-chip{display:flex;align-items:center;gap:8px;padding:10px 16px;background:var(--bg);border-radius:100px;border:1.5px solid var(--border);font-size:14px;transition:var(--transition)}
+.gene-chip:hover{border-color:var(--primary)}
+.gene-chip .letter{font-weight:700;color:var(--primary-dark);font-size:16px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:var(--primary-light);border-radius:50%}
+.gene-chip .name{color:var(--text)}
+.gene-chip .alleles{font-size:11px;color:var(--text-lighter);font-family:'SF Mono',monospace}
+.gene-chip .remove-btn{width:22px;height:22px;border-radius:50%;border:none;background:var(--danger-light);color:var(--danger);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:var(--transition);margin-left:4px}
+.gene-chip .remove-btn:hover{background:var(--danger);color:#fff}
+/* Genotype select */
+.gene-select-wrap{display:flex;align-items:center;gap:6px;background:var(--bg);border-radius:var(--radius-sm);padding:8px 12px;border:1.5px solid var(--border)}
+.gene-select-wrap .gene-label{font-weight:700;color:var(--primary-dark);font-size:14px;white-space:nowrap}
+.gene-select-wrap .gene-name-tag{font-size:11px;color:var(--text-lighter)}
+.gene-select-wrap select{padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:14px;font-family:'SF Mono',monospace;background:#fff;cursor:pointer}
+.gene-select-wrap select:focus{outline:none;border-color:var(--primary)}
+/* Toe clip */
+.toe-clip-widget{display:flex;align-items:center;gap:8px}
+.toe-clip-selects{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.toe-select{padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;color:var(--text);background:#fff;transition:var(--transition);font-family:inherit;min-width:120px}
+.toe-select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light)}
+.toe-add-btn{width:36px;height:36px;border-radius:50%;border:1.5px dashed var(--border);background:#fff;color:var(--primary);font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--transition);flex-shrink:0}
+.toe-add-btn:hover{border-color:var(--primary);background:var(--primary-light)}
+.toe-separator{font-weight:700;color:var(--text-light);font-size:16px;padding:0 2px}
+.toe-remove-btn{width:18px;height:18px;border-radius:50%;border:none;background:var(--danger-light);color:var(--danger);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.toe-remove-btn:hover{background:var(--danger);color:#fff}
+/* Cage grid */
+.cage-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:16px}
+.cage-card{background:#fff;border:2px solid var(--border);border-radius:var(--radius-md);padding:20px 16px;text-align:center;cursor:pointer;transition:all .2s ease;position:relative;overflow:hidden}
+.cage-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--primary)}
+.cage-card.has-mice{border-color:#b8d4b8}
+.cage-card.has-mice::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:var(--primary)}
+.cage-num{font-size:24px;font-weight:700;color:var(--primary-dark)}
+.cage-count{font-size:13px;color:var(--text-light);margin-top:4px}
+.cage-mice-preview{display:flex;justify-content:center;gap:4px;margin-top:8px;flex-wrap:wrap}
+.mouse-dot{width:8px;height:8px;border-radius:50%}
+.mouse-dot.female{background:var(--female)}.mouse-dot.male{background:var(--male)}
+.cage-empty-hint{color:var(--text-lighter);font-size:12px;margin-top:8px}
+.cage-notes-inline{font-size:12px;color:var(--text-lighter);margin-top:6px;font-style:italic;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:200;justify-content:center;align-items:center;backdrop-filter:blur(2px)}
+.modal-overlay.show{display:flex}
+.modal{background:#fff;border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);width:90%;max-width:700px;max-height:80vh;display:flex;flex-direction:column;animation:slideUp .25s ease}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.modal-header{padding:20px 24px;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center}
+.modal-header h3{font-size:18px}
+.modal-close{width:32px;height:32px;border-radius:50%;border:none;background:var(--bg);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:var(--transition)}
+.modal-close:hover{background:var(--danger-light);color:var(--danger)}
+.modal-body{padding:24px;overflow-y:auto;flex:1}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border-light)}
+/* Probability */
+.probability-bar-wrap{background:var(--border-light);border-radius:4px;height:8px;margin-top:4px;overflow:hidden}
+.probability-bar{height:100%;border-radius:4px;transition:width .5s ease}
+.probability-bar.high{background:var(--success)}.probability-bar.medium{background:var(--warning)}.probability-bar.low{background:var(--danger)}
+.target-highlight{background:#fef9e7!important;border-left:3px solid var(--warning)}
+.result-badge{font-size:28px;font-weight:700;color:var(--primary-dark)}
+.result-percent{font-size:14px;color:var(--text-light)}
+.gamete-tag{display:inline-block;padding:4px 10px;background:var(--accent-light);color:var(--accent);border-radius:4px;font-family:'SF Mono',monospace;font-size:13px;margin:2px}
+/* Toast */
+.toast-container{position:fixed;top:20px;right:20px;z-index:300;display:flex;flex-direction:column;gap:8px}
+.toast{padding:12px 20px;border-radius:var(--radius-sm);font-size:14px;font-weight:500;animation:slideIn .3s ease;box-shadow:var(--shadow-md);min-width:200px}
+.toast.success{background:#d5f5e3;color:#1e8449;border:1px solid #a9dfbf}
+.toast.error{background:#fadbd8;color:#c0392b;border:1px solid #f5b7b1}
+.toast.warning{background:#fef5ec;color:#b9770e;border:1px solid #fae5c3}
+@keyframes slideIn{from{opacity:0;transform:translateX(100px)}to{opacity:1;transform:translateX(0)}}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text-lighter)}
+.empty-state .icon{font-size:48px;margin-bottom:12px}
+.empty-state p{font-size:14px}
+@media(max-width:768px){
+  .header{padding:0 16px}.nav-tabs{padding:0 12px;overflow-x:auto}.nav-tab{padding:10px 14px;font-size:13px}
+  .main{padding:16px}.form-grid{grid-template-columns:1fr}.cage-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
+}
+@media print{
+  .header,.nav-tabs,.btn,.modal-overlay{display:none!important}
+  .tab-panel{display:block!important}.card{box-shadow:none;border:1px solid #ddd;break-inside:avoid}
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-brand"><span class="icon">🧬</span><span>小鼠基因配型管理系统</span></div>
+  <div class="header-actions">
+    <button class="btn btn-outline btn-sm" onclick="exportData()">📥 导出</button>
+    <button class="btn btn-outline btn-sm" onclick="importDataPrompt()">📤 导入</button>
+    <button class="btn btn-ghost btn-sm" onclick="resetAll()">🔄 重置</button>
+  </div>
+</header>
+
+<nav class="nav-tabs" id="navTabs">
+  <button class="nav-tab active" data-tab="gene-manager">🧬 基因库管理</button>
+  <button class="nav-tab" data-tab="mouse-manager">🐭 小鼠管理</button>
+  <button class="nav-tab" data-tab="breeding-calc">🔬 配种计算器</button>
+  <button class="nav-tab" data-tab="cage-manager">🏠 笼位管理</button>
+  <button class="nav-tab" data-tab="location-manager">📍 养鼠位置</button>
+</nav>
+
+<main class="main">
+
+<!-- TAB 1: 基因库管理 -->
+<section class="tab-panel active" id="panel-gene-manager">
+  <div class="card">
+    <div class="card-header"><span class="icon">➕</span> 添加新基因<span class="card-subtitle">按字母表顺序自动分配字母</span></div>
+    <div class="form-grid">
+      <div class="form-group"><label>基因名称</label><input type="text" id="geneNameInput" placeholder="例如：5×FAD、loxp、Cre…"></div>
+      <div class="form-group" style="align-self:end;"><button class="btn btn-primary" onclick="addGene()">添加基因</button></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="icon">📋</span> 已定义基因列表<span class="card-subtitle" id="geneCount">共 0 个基因</span></div>
+    <div class="gene-list" id="geneList"></div>
+    <div class="empty-state" id="geneEmpty"><div class="icon">🧬</div><p>尚未定义基因，请先添加</p></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="icon">ℹ️</span> 基因型表示说明</div>
+    <div style="font-size:14px;line-height:2;color:var(--text-light);">
+      <p>• 每个基因用一对大小写字母表示，如 <b style="color:var(--primary-dark)">Aa</b></p>
+      <p>• 大写 = 突变等位基因，小写 = 野生型等位基因（WT）</p>
+      <p>• <b style="color:var(--primary-dark)">AA</b> = 纯合突变 | <b style="color:var(--primary-dark)">Aa</b> = 杂合突变 | <b style="color:var(--primary-dark)">aa</b> = 野生型</p>
+      <p>• 多个基因按字母顺序连接，如 <b style="color:var(--primary-dark)">AaBB</b>（基因A杂合 + 基因B纯合突变）</p>
+      <p>• 添加小鼠时每个基因独立下拉选择，无需填写全部基因</p>
+    </div>
+  </div>
+</section>
+
+<!-- TAB 2: 小鼠管理 -->
+<section class="tab-panel" id="panel-mouse-manager">
+  <div class="card">
+    <div class="card-header"><span class="icon">➕</span> 添加小鼠</div>
+    <div class="form-grid">
+      <div class="form-group"><label>小鼠编号 / 耳标号</label><input type="text" id="mouseIdInput" placeholder="例如：M001（可不填）"></div>
+      <div class="form-group">
+        <label>断脚趾号</label>
+        <div class="toe-clip-widget" id="toeClipWidget">
+          <div class="toe-clip-selects" id="toeClipSelects"><select class="toe-select" onchange="updateToeClipValue()"><option value="">选择脚趾…</option></select></div>
+          <button type="button" class="toe-add-btn" onclick="addToeSelect()" title="添加另一个脚趾号">+</button>
+        </div>
+        <input type="hidden" id="mouseToeClipInput" value="">
+      </div>
+      <div class="form-group"><label>出生日期</label><input type="date" id="mouseBirthInput"></div>
+      <div class="form-group">
+        <label>性别</label>
+        <select id="mouseSexInput"><option value="male">♂ 雄性</option><option value="female">♀ 雌性</option><option value="unknown">⚧ 未知</option></select>
+      </div>
+      <div class="form-group" style="grid-column:1/-1;">
+        <label>基因型 <span style="font-size:11px;color:var(--text-lighter);font-weight:400;">（每个基因下拉选择，未选默认WT）</span></label>
+        <div id="genotypeSelects" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;"></div>
+        <input type="hidden" id="mouseGenotypeInput" value="">
+      </div>
+      <div class="form-group"><label>所属笼位号</label><input type="number" id="mouseCageInput" placeholder="笼位号" min="1" value="1"></div>
+      <div class="form-group"><label>备注</label><input type="text" id="mouseNotesInput" placeholder="可选备注信息"></div>
+      <div class="form-group" style="align-self:end;"><button class="btn btn-primary" onclick="addMouse()">添加小鼠</button></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="icon">🔍</span> 小鼠列表<span class="card-subtitle" id="mouseCount">共 0 只</span>
+      <span style="flex:1;"></span>
+      <input type="text" id="mouseSearchInput" placeholder="搜索编号/断趾号/基因型…" style="padding:6px 12px;border:1px solid var(--border);border-radius:20px;font-size:13px;width:200px;" oninput="renderMouseTable()">
+    </div>
+    <div class="table-wrap"><table><thead><tr>
+      <th>编号</th><th>断脚趾号</th><th>性别</th><th>基因型</th><th>出生日期</th><th>日龄</th><th>笼位</th><th>备注</th><th>操作</th>
+    </tr></thead><tbody id="mouseTableBody"></tbody></table></div>
+    <div class="empty-state" id="mouseEmpty"><div class="icon">🐭</div><p>尚未添加小鼠</p></div>
+  </div>
+</section>
+
+<!-- TAB 3: 配种计算器 -->
+<section class="tab-panel" id="panel-breeding-calc">
+  <div class="card">
+    <div class="card-header"><span class="icon">🔬</span> 亲本选择</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+      <div>
+        <h4 style="margin-bottom:12px;color:var(--accent);">♀/♂ 亲本一</h4>
+        <div class="form-group" style="margin-bottom:8px;"><label>从小鼠库选择</label><select id="parent1Select" onchange="onParentSelect(1,this.value)"><option value="">-- 自定义输入 --</option></select></div>
+        <div class="form-group"><label>或直接输入基因型</label><input type="text" id="parent1Genotype" placeholder="例如：AaBb" style="font-family:monospace;letter-spacing:2px;" oninput="onParentGenotypeInput()"></div>
+        <div id="parent1Gametes" style="margin-top:8px;font-size:12px;color:var(--text-light);"></div>
+      </div>
+      <div>
+        <h4 style="margin-bottom:12px;color:var(--accent);">♀/♂ 亲本二</h4>
+        <div class="form-group" style="margin-bottom:8px;"><label>从小鼠库选择</label><select id="parent2Select" onchange="onParentSelect(2,this.value)"><option value="">-- 自定义输入 --</option></select></div>
+        <div class="form-group"><label>或直接输入基因型</label><input type="text" id="parent2Genotype" placeholder="例如：AaBb" style="font-family:monospace;letter-spacing:2px;" oninput="onParentGenotypeInput()"></div>
+        <div id="parent2Gametes" style="margin-top:8px;font-size:12px;color:var(--text-light);"></div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="icon">🎯</span> 目标基因型</div>
+    <div style="display:flex;gap:16px;align-items:end;flex-wrap:wrap;">
+      <div class="form-group" style="flex:1;min-width:200px;"><label>期望的目标基因型</label><input type="text" id="targetGenotype" placeholder="例如：AABb" style="font-family:monospace;letter-spacing:2px;"></div>
+      <button class="btn btn-accent" onclick="calculateProbability()">🔬 计算概率</button>
+      <button class="btn btn-outline" onclick="calculateAllOffspring()">📊 显示所有可能后代</button>
+    </div>
+    <div id="breedingResult" style="margin-top:16px;"></div>
+  </div>
+  <div class="card" id="punnettCard" style="display:none;">
+    <div class="card-header"><span class="icon">📐</span> Punnett 方阵 / 后代概率分布</div>
+    <div id="punnettContent"></div>
+  </div>
+</section>
+
+<!-- TAB 4: 笼位管理 -->
+<section class="tab-panel" id="panel-cage-manager">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+    <div class="btn-group"><button class="btn btn-primary btn-sm" onclick="addCage()">➕ 新增笼位</button><button class="btn btn-outline btn-sm" onclick="renderCageGrid()">🔄 刷新</button></div>
+    <span style="font-size:13px;color:var(--text-light);" id="cageStats"></span>
+  </div>
+  <div class="cage-grid" id="cageGrid"></div>
+  <div class="empty-state" id="cageEmpty"><div class="icon">🏠</div><p>尚未创建笼位</p></div>
+</section>
+
+<!-- TAB 5: 养鼠位置 -->
+<section class="tab-panel" id="panel-location-manager">
+  <div class="card">
+    <div class="card-header"><span class="icon">➕</span> 添加养鼠位置<span class="card-subtitle">例如：动物房301、IVC笼架A…</span></div>
+    <div style="display:flex;gap:12px;align-items:end;flex-wrap:wrap;">
+      <div class="form-group" style="flex:1;min-width:200px;"><label>位置名称</label><input type="text" id="locationNameInput" placeholder="例如：动物房301"></div>
+      <div class="form-group" style="flex:1;min-width:200px;"><label>备注</label><input type="text" id="locationNotesInput" placeholder="可选备注"></div>
+      <button class="btn btn-primary" onclick="addLocation()">添加位置</button>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+    <span style="font-size:14px;color:var(--text);font-weight:600;" id="locationStats"></span>
+    <button class="btn btn-outline btn-sm" onclick="renderLocationGrid()">🔄 刷新</button>
+  </div>
+  <div class="cage-grid" id="locationGrid"></div>
+  <div class="empty-state" id="locationEmpty"><div class="icon">📍</div><p>尚未添加养鼠位置</p></div>
+</section>
+
+</main>
+
+<!-- CAGE MODAL -->
+<div class="modal-overlay" id="cageModal">
+  <div class="modal">
+    <div class="modal-header"><h3 id="cageModalTitle">🏠 笼位详情</h3><button class="modal-close" onclick="closeCageModal()">✕</button></div>
+    <div class="modal-body" id="cageModalBody"></div>
+    <div class="modal-footer"><button class="btn btn-outline btn-sm" onclick="closeCageModal()">关闭</button></div>
+  </div>
+</div>
+
+<!-- LOCATION MODAL -->
+<div class="modal-overlay" id="locationModal">
+  <div class="modal">
+    <div class="modal-header"><h3 id="locationModalTitle">📍 位置详情</h3><button class="modal-close" onclick="closeLocationModal()">✕</button></div>
+    <div class="modal-body" id="locationModalBody"></div>
+    <div class="modal-footer"><button class="btn btn-outline btn-sm" onclick="closeLocationModal()">关闭</button></div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+<input type="file" id="importFileInput" accept=".json" style="display:none;" onchange="handleImportFile(event)">
+
+<script>
+// ═══════════════ DATA LAYER ═══════════════
+const STORAGE_KEY = 'mouse_genotyping_data';
+function generateUid(){ return 'm_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8); }
+
+const DEFAULT_DATA = {
+  genes: [{ letter:'A', name:'5×FAD' }],
+  mice: [
+    { uid:'m_demo_1', id:'M001', toeClip:'1', birthDate:'2025-12-01', sex:'female', genotype:'Aa', cageId:1, notes:'杂合5×FAD母鼠' },
+    { uid:'m_demo_2', id:'M002', toeClip:'2', birthDate:'2025-12-01', sex:'male', genotype:'Aa', cageId:1, notes:'杂合5×FAD公鼠' },
+    { uid:'m_demo_3', id:'M003', toeClip:'', birthDate:'2025-12-15', sex:'female', genotype:'aa', cageId:2, notes:'WT对照母鼠' },
+    { uid:'m_demo_4', id:'M004', toeClip:'', birthDate:'2025-12-15', sex:'male', genotype:'aa', cageId:2, notes:'WT对照公鼠' },
+  ],
+  cages: [
+    { id:1, name:'Cage 1', locationId:'loc_demo_1', notes:'5×FAD杂合配种笼' },
+    { id:2, name:'Cage 2', locationId:'loc_demo_1', notes:'WT对照笼' },
+    { id:3, name:'Cage 3', locationId:'loc_demo_2', notes:'' },
+    { id:4, name:'Cage 4', locationId:'loc_demo_2', notes:'' },
+    { id:5, name:'Cage 5', locationId:'', notes:'' },
+    { id:6, name:'Cage 6', locationId:'', notes:'' },
+  ],
+  locations: [
+    { uid:'loc_demo_1', name:'动物房301', notes:'IVC笼架A排' },
+    { uid:'loc_demo_2', name:'培养间2号柜', notes:'' },
+  ]
+};
+
+let appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+
+function loadData(){
+  try{
+    const raw=localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed=JSON.parse(raw);
+      appData.genes=parsed.genes||DEFAULT_DATA.genes;
+      appData.mice=parsed.mice||[];
+      appData.cages=parsed.cages||DEFAULT_DATA.cages;
+      appData.locations=parsed.locations||DEFAULT_DATA.locations||[];
+      appData.mice.forEach(function(m){if(!m.uid)m.uid=generateUid();});
+      appData.cages.forEach(function(c){if(c.locationId===undefined)c.locationId='';});
+    }
+  }catch(e){ appData=JSON.parse(JSON.stringify(DEFAULT_DATA)); }
+}
+function saveData(){ try{localStorage.setItem(STORAGE_KEY,JSON.stringify(appData));}catch(e){showToast('保存失败：存储已满','error');} }
+function exportData(){ const b=new Blob([JSON.stringify(appData,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='mouse-genotyping-backup-'+new Date().toISOString().slice(0,10)+'.json'; a.click(); URL.revokeObjectURL(a.href); showToast('数据已导出','success'); }
+function importDataPrompt(){ document.getElementById('importFileInput').click(); }
+function handleImportFile(e){
+  const f=e.target.files[0]; if(!f)return; const r=new FileReader();
+  r.onload=function(ev){
+    try{
+      const d=JSON.parse(ev.target.result);
+      if(!d.genes||!d.mice||!d.cages)throw new Error('格式不正确');
+      appData=d;
+      if(!appData.locations)appData.locations=[];
+      appData.mice.forEach(function(m){if(!m.uid)m.uid=generateUid();});
+      appData.cages.forEach(function(c){if(c.locationId===undefined)c.locationId='';});
+      saveData(); refreshAll(); showToast('数据已导入','success');
+    }catch(err){ showToast('导入失败：文件格式不正确','error'); }
+  };
+  r.readAsText(f); e.target.value='';
+}
+function resetAll(){
+  if(confirm('确定要重置所有数据吗？此操作不可撤销！\n\n建议先导出数据备份。')){
+    appData=JSON.parse(JSON.stringify(DEFAULT_DATA)); saveData(); refreshAll(); showToast('数据已重置','warning');
+  }
+}
+
+// ═══════════════ GENE MANAGEMENT ═══════════════
+function getNextLetter(){
+  const used=new Set(appData.genes.map(g=>g.letter));
+  for(let i=0;i<26;i++){ const l=String.fromCharCode(65+i); if(!used.has(l))return l; }
+  return null;
+}
+function addGene(){
+  const name=document.getElementById('geneNameInput').value.trim();
+  if(!name){showToast('请输入基因名称','error');return;}
+  const letter=getNextLetter();
+  if(!letter){showToast('已达到最大基因数（26个）','error');return;}
+  if(appData.genes.some(g=>g.name===name)){showToast('该基因名称已存在','error');return;}
+  appData.genes.push({letter,name});
+  const wtPair=letter.toLowerCase()+letter.toLowerCase();
+  appData.mice.forEach(function(m){m.genotype+=wtPair;});
+  saveData(); document.getElementById('geneNameInput').value=''; refreshAll();
+  showToast('基因 "'+name+'" 已添加，分配字母 '+letter+'，现有小鼠已默认设为 '+wtPair+' (WT)','success');
+}
+function removeGene(letter){
+  const gene=appData.genes.find(g=>g.letter===letter); if(!gene)return;
+  if(!confirm('确定删除基因 "'+gene.name+'" ('+letter+') 吗？\n所有小鼠的该基因位点信息将被移除。'))return;
+  const geneIndex=appData.genes.findIndex(g=>g.letter===letter); if(geneIndex<0)return;
+  const pairPos=geneIndex*2;
+  appData.mice.forEach(function(m){if(m.genotype.length>pairPos+1)m.genotype=m.genotype.slice(0,pairPos)+m.genotype.slice(pairPos+2);});
+  appData.genes.splice(geneIndex,1); saveData(); refreshAll();
+  showToast('基因 "'+gene.name+'" 已删除','warning');
+}
+
+// ═══════════════ GENOTYPE SELECTS ═══════════════
+function renderGenotypeSelects(){
+  var container=document.getElementById('genotypeSelects');
+  container.innerHTML='';
+  if(appData.genes.length===0){
+    container.innerHTML='<span style="color:var(--text-lighter);font-size:13px;">请先在基因库中添加基因</span>';
+    return;
+  }
+  appData.genes.forEach(function(g,i){
+    var wrap=document.createElement('span');
+    wrap.className='gene-select-wrap';
+    var label=document.createElement('span');
+    label.className='gene-label';
+    label.textContent=g.letter;
+    label.title=g.name;
+    var nameTag=document.createElement('span');
+    nameTag.className='gene-name-tag';
+    nameTag.textContent=g.name;
+    var sel=document.createElement('select');
+    sel.setAttribute('data-gene-index',i);
+    sel.onchange=updateGenotypeValue;
+    var wt=g.letter.toLowerCase()+g.letter.toLowerCase();
+    var ht=g.letter+g.letter.toLowerCase();
+    var hm=g.letter+g.letter;
+    sel.innerHTML='<option value="'+wt+'">'+wt+' (WT)</option><option value="'+ht+'">'+ht+' (HET)</option><option value="'+hm+'">'+hm+' (HOM)</option>';
+    wrap.appendChild(label);
+    wrap.appendChild(nameTag);
+    wrap.appendChild(sel);
+    container.appendChild(wrap);
+  });
+  updateGenotypeValue();
+}
+function updateGenotypeValue(){
+  var selects=document.querySelectorAll('#genotypeSelects select');
+  var gt='';
+  selects.forEach(function(sel){gt+=sel.value;});
+  document.getElementById('mouseGenotypeInput').value=gt;
+}
+function setGenotypeSelects(gt){
+  var selects=document.querySelectorAll('#genotypeSelects select');
+  var numGenes=selects.length;
+  if(numGenes===0)return;
+  var expectedLen=numGenes*2;
+  // Pad with WT if genotype is shorter
+  while(gt.length<expectedLen){
+    var idx=gt.length/2;
+    var letter=appData.genes[idx]?appData.genes[idx].letter:'?';
+    gt+=letter.toLowerCase()+letter.toLowerCase();
+  }
+  selects.forEach(function(sel,i){
+    var pair=gt.substring(i*2,i*2+2);
+    // Validate pair belongs to correct gene
+    var geneLetter=appData.genes[i]?appData.genes[i].letter:'';
+    if(pair.toUpperCase()===geneLetter+geneLetter && pair.length===2){
+      sel.value=pair;
+    }else{
+      // Fall back to WT
+      sel.value=geneLetter.toLowerCase()+geneLetter.toLowerCase();
+    }
+  });
+  updateGenotypeValue();
+}
+
+// ═══════════════ TOE CLIP WIDGET ═══════════════
+function populateToeSelect(sel){
+  var cur=sel.value; sel.innerHTML='<option value="">选择脚趾…</option>';
+  for(var i=1;i<=16;i++)sel.innerHTML+='<option value="'+i+'">'+i+'</option>';
+  sel.value=cur;
+}
+function addToeSelect(){
+  var container=document.getElementById('toeClipSelects');
+  if(container.querySelectorAll('.toe-select').length>=4)return;
+  var sep=document.createElement('span'); sep.className='toe-separator'; sep.textContent='+'; container.appendChild(sep);
+  var wrapper=document.createElement('span'); wrapper.style.cssText='display:inline-flex;align-items:center;gap:2px;';
+  var sel=document.createElement('select'); sel.className='toe-select'; sel.onchange=updateToeClipValue;
+  var rmBtn=document.createElement('button'); rmBtn.type='button'; rmBtn.className='toe-remove-btn'; rmBtn.textContent='×'; rmBtn.title='移除此趾号';
+  rmBtn.onclick=function(){wrapper.previousElementSibling&&wrapper.previousElementSibling.remove();wrapper.remove();updateToeClipValue();var b=document.querySelector('.toe-add-btn');if(b)b.style.display='';};
+  wrapper.appendChild(sel); wrapper.appendChild(rmBtn); container.appendChild(wrapper); populateToeSelect(sel);
+  if(container.querySelectorAll('.toe-select').length>=4)document.querySelector('.toe-add-btn').style.display='none';
+}
+function updateToeClipValue(){
+  var selects=document.querySelectorAll('#toeClipSelects .toe-select'),vals=[];
+  selects.forEach(function(s){if(s.value)vals.push(parseInt(s.value));});
+  vals.sort(function(a,b){return a-b;});
+  document.getElementById('mouseToeClipInput').value=vals.join('+');
+}
+function setToeClipWidget(value){
+  var container=document.getElementById('toeClipSelects'); container.innerHTML='';
+  var toes=value?value.split('+').map(Number).filter(function(n){return n>=1&&n<=16;}):[];
+  var firstSel=document.createElement('select'); firstSel.className='toe-select'; firstSel.onchange=updateToeClipValue;
+  firstSel.value=toes.length>0?String(toes[0]):''; container.appendChild(firstSel); populateToeSelect(firstSel);
+  for(var i=1;i<toes.length;i++){
+    var sep=document.createElement('span'); sep.className='toe-separator'; sep.textContent='+'; container.appendChild(sep);
+    var wrapper=document.createElement('span'); wrapper.style.cssText='display:inline-flex;align-items:center;gap:2px;';
+    var sel=document.createElement('select'); sel.className='toe-select'; sel.onchange=updateToeClipValue; sel.value=String(toes[i]);
+    var rmBtn=document.createElement('button'); rmBtn.type='button'; rmBtn.className='toe-remove-btn'; rmBtn.textContent='×'; rmBtn.title='移除此趾号';
+    (function(w){rmBtn.onclick=function(){w.previousElementSibling&&w.previousElementSibling.remove();w.remove();updateToeClipValue();var b=document.querySelector('.toe-add-btn');if(b)b.style.display='';};})(wrapper);
+    wrapper.appendChild(sel); wrapper.appendChild(rmBtn); container.appendChild(wrapper); populateToeSelect(sel);
+  }
+  document.getElementById('mouseToeClipInput').value=toes.join('+');
+  var btn=document.querySelector('.toe-add-btn'); if(btn)btn.style.display=toes.length>=4?'none':'';
+}
+
+// ═══════════════ MOUSE MANAGEMENT ═══════════════
+function getMouseAge(bd){if(!bd)return'—';var b=new Date(bd),t=new Date(),d=Math.floor((t-b)/86400000);if(d<0)return'未出生';if(d<7)return d+' 天';if(d<60)return Math.floor(d/7)+' 周';return Math.floor(d/30.44)+' 月';}
+
+function addMouse(){
+  var id=document.getElementById('mouseIdInput').value.trim();
+  var toeClip=document.getElementById('mouseToeClipInput').value.trim();
+  var birthDate=document.getElementById('mouseBirthInput').value;
+  var sex=document.getElementById('mouseSexInput').value;
+  var genotype=document.getElementById('mouseGenotypeInput').value.trim();
+  var cageId=parseInt(document.getElementById('mouseCageInput').value)||1;
+  var notes=document.getElementById('mouseNotesInput').value.trim();
+  if(!birthDate){showToast('请选择出生日期','error');return;}
+  if(!genotype){showToast('请选择基因型（至少定义一个基因）','error');return;}
+  if(id&&appData.mice.some(function(m){return m.id===id;})){showToast('该编号已存在','error');return;}
+  if(!appData.cages.some(function(c){return c.id===cageId;}))appData.cages.push({id:cageId,name:'Cage '+cageId,locationId:'',notes:''});
+  appData.mice.push({uid:generateUid(),id:id,toeClip:toeClip,birthDate:birthDate,sex:sex,genotype:genotype,cageId:cageId,notes:notes});
+  saveData();
+  document.getElementById('mouseIdInput').value=''; setToeClipWidget(''); document.getElementById('mouseBirthInput').value='';
+  document.getElementById('mouseNotesInput').value=''; refreshAll();
+  showToast('小鼠 '+(id||'未知')+' 已添加','success');
+}
+function removeMouse(mouseUid){
+  var mouse=appData.mice.find(function(m){return m.uid===mouseUid;}); if(!mouse)return;
+  var dn=mouse.id||'未知';
+  if(!confirm('确定删除小鼠 '+dn+' 吗？'))return;
+  appData.mice=appData.mice.filter(function(m){return m.uid!==mouseUid;});
+  saveData(); refreshAll(); showToast('小鼠 '+dn+' 已删除','warning');
+}
+function editMouse(mouseUid){
+  var mouse=appData.mice.find(function(m){return m.uid===mouseUid;}); if(!mouse)return;
+  document.getElementById('mouseIdInput').value=mouse.id||''; setToeClipWidget(mouse.toeClip||'');
+  document.getElementById('mouseBirthInput').value=mouse.birthDate;
+  document.getElementById('mouseSexInput').value=mouse.sex;
+  document.getElementById('mouseCageInput').value=mouse.cageId;
+  document.getElementById('mouseNotesInput').value=mouse.notes||'';
+  // Set genotype selects (render first if needed)
+  renderGenotypeSelects(); setGenotypeSelects(mouse.genotype);
+  appData.mice=appData.mice.filter(function(m){return m.uid!==mouseUid;}); saveData(); renderMouseTable(); renderCageGrid();
+  // Switch tab
+  document.querySelectorAll('.nav-tab').forEach(function(t){t.classList.remove('active');});
+  document.querySelector('[data-tab="mouse-manager"]').classList.add('active');
+  document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active');});
+  document.getElementById('panel-mouse-manager').classList.add('active');
+  var dn=mouse.id||'未知';
+  showToast('正在编辑 '+dn+'，修改后请点击"添加小鼠"保存','warning');
+}
+
+// ═══════════════ CAGE MANAGEMENT ═══════════════
+function addCage(){
+  var maxId=appData.cages.length>0?Math.max.apply(null,appData.cages.map(function(c){return c.id;})):0;
+  appData.cages.push({id:maxId+1,name:'Cage '+(maxId+1),locationId:'',notes:''}); saveData(); refreshAll();
+  showToast('笼位 '+(maxId+1)+' 已添加','success');
+}
+function saveCageNotes(cageId,notes){
+  var cage=appData.cages.find(function(c){return c.id===cageId;});
+  if(cage){cage.notes=notes.trim();saveData();renderCageGrid();renderLocationGrid();}
+}
+function saveCageLocation(cageId,locationId){
+  var cage=appData.cages.find(function(c){return c.id===cageId;});
+  if(cage){cage.locationId=locationId;saveData();renderCageGrid();renderLocationGrid();}
+}
+function removeCage(cageId){
+  var miceInCage=appData.mice.filter(function(m){return m.cageId===cageId;});
+  if(miceInCage.length>0){
+    if(!confirm('笼位 '+cageId+' 中有 '+miceInCage.length+' 只小鼠，删除后这些小鼠将被移至笼位1。确定删除吗？'))return;
+    miceInCage.forEach(function(m){m.cageId=1;});
+  }else{if(!confirm('确定删除空笼位 '+cageId+' 吗？'))return;}
+  appData.cages=appData.cages.filter(function(c){return c.id!==cageId;});
+  if(!appData.cages.some(function(c){return c.id===1;}))appData.cages.unshift({id:1,name:'Cage 1',locationId:'',notes:''});
+  saveData(); refreshAll(); showToast('笼位 '+cageId+' 已删除','warning');
+}
+
+// ═══════════════ LOCATION MANAGEMENT ═══════════════
+function getLocationName(lid){
+  if(!lid)return'未分配';
+  var loc=appData.locations.find(function(l){return l.uid===lid;});
+  return loc?loc.name:'未分配';
+}
+function addLocation(){
+  var name=document.getElementById('locationNameInput').value.trim();
+  if(!name){showToast('请输入位置名称','error');return;}
+  var notes=document.getElementById('locationNotesInput').value.trim();
+  appData.locations.push({uid:generateUid(),name:name,notes:notes}); saveData();
+  document.getElementById('locationNameInput').value=''; document.getElementById('locationNotesInput').value='';
+  renderLocationGrid(); showToast('位置 "'+name+'" 已添加','success');
+}
+function removeLocation(locUid){
+  var loc=appData.locations.find(function(l){return l.uid===locUid;}); if(!loc)return;
+  if(!confirm('确定删除位置 "'+loc.name+'" 吗？\n该位置下的笼位将变为"未分配"。'))return;
+  appData.cages.forEach(function(c){if(c.locationId===locUid)c.locationId='';});
+  appData.locations=appData.locations.filter(function(l){return l.uid!==locUid;});
+  saveData(); renderLocationGrid(); renderCageGrid(); showToast('位置 "'+loc.name+'" 已删除','warning');
+}
+function updateLocationName(uid,name){var loc=appData.locations.find(function(l){return l.uid===uid;});if(loc){loc.name=name.trim()||loc.name;saveData();renderLocationGrid();}}
+function updateLocationNotes(uid,notes){var loc=appData.locations.find(function(l){return l.uid===uid;});if(loc){loc.notes=notes.trim();saveData();renderLocationGrid();}}
+function moveCageToLocation(locUid){
+  var sel=document.getElementById('moveCageToLocationSelect'); var cageId=parseInt(sel.value);
+  if(!cageId){showToast('请选择笼位','error');return;}
+  var cage=appData.cages.find(function(c){return c.id===cageId;}); if(!cage)return;
+  cage.locationId=locUid; saveData(); openLocationModal(locUid); renderLocationGrid(); renderCageGrid();
+  showToast('笼位 '+cageId+' 已移至该位置','success');
+}
+
+// ═══════════════ GENETICS CALCULATOR ═══════════════
+function parseGenotype(gt){
+  var genes=[]; for(var i=0;i<gt.length;i+=2){genes.push({letter:gt[i].toUpperCase(),alleles:gt[i]+gt[i+1],arr:[gt[i],gt[i+1]]});} return genes;
+}
+function getGametes(gt){
+  var genes=parseGenotype(gt),gametes=[];
+  function combine(idx,cur){if(idx===genes.length){gametes.push(cur);return;}var a=genes[idx].arr;if(a[0]===a[1])combine(idx+1,cur+a[0]);else{combine(idx+1,cur+a[0]);combine(idx+1,cur+a[1]);}}
+  combine(0,''); var counts={}; gametes.forEach(function(g){counts[g]=(counts[g]||0)+1;});
+  return Object.entries(counts).map(function(e){return{gamete:e[0],probability:e[1]/gametes.length};});
+}
+function calculateOffspringProbabilities(p1gt,p2gt){
+  var g1=parseGenotype(p1gt),g2=parseGenotype(p2gt);
+  if(g1.length!==g2.length)throw new Error('亲本基因数量不一致');
+  var perGene=[];
+  for(var i=0;i<g1.length;i++){
+    var p1a=g1[i].arr,p2a=g2[i].arr,probs={};
+    for(var j=0;j<p1a.length;j++){for(var k=0;k<p2a.length;k++){
+      var a1=p1a[j],a2=p2a[k],alleles;
+      if(a1===a1.toUpperCase()&&a2===a2.toLowerCase())alleles=a1+a2;
+      else if(a1===a1.toLowerCase()&&a2===a2.toUpperCase())alleles=a2+a1;
+      else alleles=a1<=a2?a1+a2:a2+a1;
+      probs[alleles]=(probs[alleles]||0)+1/(p1a.length*p2a.length);
+    }}
+    perGene.push(probs);
+  }
+  var result={};
+  function combine(idx,curGt,curProb){if(idx===perGene.length){result[curGt]=(result[curGt]||0)+curProb;return;}for(var a in perGene[idx])combine(idx+1,curGt+a,curProb*perGene[idx][a]);}
+  combine(0,'',1); return result;
+}
+
+function calculateProbability(){
+  var p1gt=document.getElementById('parent1Genotype').value.trim();
+  var p2gt=document.getElementById('parent2Genotype').value.trim();
+  var targetGt=document.getElementById('targetGenotype').value.trim();
+  if(!p1gt||!p2gt){showToast('请输入两个亲本的基因型','error');return;}
+  if(p1gt.length!==p2gt.length){showToast('两个亲本的基因数量不一致','error');return;}
+  if(!targetGt){showToast('请输入目标基因型','error');return;}
+  if(targetGt.length!==p1gt.length){showToast('目标基因型长度与亲本不一致','error');return;}
+  try{
+    var allOffspring=calculateOffspringProbabilities(p1gt,p2gt);
+    var targetProb=allOffspring[targetGt]||0;
+    var p1G=getGametes(p1gt),p2G=getGametes(p2gt);
+    document.getElementById('parent1Gametes').innerHTML='配子: '+p1G.map(function(g){return'<span class="gamete-tag">'+g.gamete+' ('+(g.probability*100).toFixed(1)+'%)</span>';}).join(' ');
+    document.getElementById('parent2Gametes').innerHTML='配子: '+p2G.map(function(g){return'<span class="gamete-tag">'+g.gamete+' ('+(g.probability*100).toFixed(1)+'%)</span>';}).join(' ');
+    var pct=(targetProb*100).toFixed(2);
+    var barClass=targetProb>=0.25?'high':targetProb>=0.0625?'medium':'low';
+    document.getElementById('breedingResult').innerHTML='<div style="background:var(--bg);border-radius:var(--radius-md);padding:20px;text-align:center;">'+
+      '<div style="font-size:14px;color:var(--text-light);margin-bottom:8px;">'+p1gt+' × '+p2gt+' → <b style="color:var(--primary-dark);">'+targetGt+'</b></div>'+
+      '<div class="result-badge">'+pct+'%</div><div class="result-percent">（概率 = '+(targetProb<0.001?'<0.1%':pct+'%')+'）</div>'+
+      '<div class="probability-bar-wrap" style="margin-top:12px;max-width:300px;margin-left:auto;margin-right:auto;"><div class="probability-bar '+barClass+'" style="width:'+Math.max(targetProb*100,0.5)+'%;"></div></div>'+
+      '<div style="margin-top:8px;font-size:12px;color:var(--text-lighter);">目标后代期望：每 '+(targetProb>0?Math.round(1/targetProb):'∞')+' 只后代中约有 1 只为目标基因型</div></div>';
+    renderAllOffspringTable(allOffspring,targetGt);
+  }catch(e){showToast('计算出错：'+e.message,'error');}
+}
+function calculateAllOffspring(){
+  var p1gt=document.getElementById('parent1Genotype').value.trim();
+  var p2gt=document.getElementById('parent2Genotype').value.trim();
+  if(!p1gt||!p2gt){showToast('请输入两个亲本的基因型','error');return;}
+  if(p1gt.length!==p2gt.length){showToast('两个亲本的基因数量不一致','error');return;}
+  try{
+    var allOffspring=calculateOffspringProbabilities(p1gt,p2gt);
+    var p1G=getGametes(p1gt),p2G=getGametes(p2gt);
+    document.getElementById('parent1Gametes').innerHTML='配子: '+p1G.map(function(g){return'<span class="gamete-tag">'+g.gamete+' ('+(g.probability*100).toFixed(0)+'%)</span>';}).join(' ');
+    document.getElementById('parent2Gametes').innerHTML='配子: '+p2G.map(function(g){return'<span class="gamete-tag">'+g.gamete+' ('+(g.probability*100).toFixed(0)+'%)</span>';}).join(' ');
+    renderAllOffspringTable(allOffspring,null);
+  }catch(e){showToast('计算出错：'+e.message,'error');}
+}
+function renderAllOffspringTable(allOffspring,highlightGt){
+  var sorted=Object.entries(allOffspring).sort(function(a,b){return b[1]-a[1];}),html='<div class="table-wrap"><table><thead><tr><th>排名</th><th>后代基因型</th><th>概率</th><th>可视化</th><th>每窝期望数*</th></tr></thead><tbody>';
+  sorted.forEach(function(e,idx){
+    var gt=e[0],prob=e[1],pct=(prob*100).toFixed(2),isTarget=gt===highlightGt;
+    var bc=prob>=0.25?'high':prob>=0.0625?'medium':'low';
+    html+='<tr class="'+(isTarget?'target-highlight':'')+'"><td>'+(idx+1)+'</td><td style="font-family:monospace;letter-spacing:2px;font-weight:600;">'+gt+'</td><td><b>'+pct+'%</b></td><td style="min-width:120px;"><div class="probability-bar-wrap"><div class="probability-bar '+bc+'" style="width:'+Math.max(prob*100,1)+'%;"></div></div></td><td style="color:var(--text-lighter);">'+(prob>0?(prob*8).toFixed(1)+' 只':'0')+'</td></tr>';
+  });
+  html+='</tbody></table></div><div style="font-size:11px;color:var(--text-lighter);margin-top:8px;">* 按每窝8只估算</div>';
+  document.getElementById('punnettContent').innerHTML=html; document.getElementById('punnettCard').style.display='block'; document.getElementById('breedingResult').style.display='block';
+}
+
+// ═══════════════ UI RENDERING ═══════════════
+function renderGeneManager(){
+  var list=document.getElementById('geneList'),empty=document.getElementById('geneEmpty'),cnt=document.getElementById('geneCount');
+  cnt.textContent='共 '+appData.genes.length+' 个基因';
+  if(appData.genes.length===0){list.innerHTML='';empty.style.display='block';}
+  else{empty.style.display='none';
+    list.innerHTML=appData.genes.map(function(g){return'<div class="gene-chip"><span class="letter">'+g.letter+'</span><span class="name">'+g.name+'</span><span class="alleles">'+g.letter+g.letter+' / '+g.letter+g.letter.toLowerCase()+' / '+g.letter.toLowerCase()+g.letter.toLowerCase()+'</span><button class="remove-btn" onclick="removeGene(\''+g.letter+'\')" title="删除">×</button></div>';}).join('');
+  }
+}
+function renderMouseTable(){
+  var tbody=document.getElementById('mouseTableBody'),empty=document.getElementById('mouseEmpty'),cnt=document.getElementById('mouseCount');
+  var search=(document.getElementById('mouseSearchInput')?.value||'').toLowerCase();
+  var mice=appData.mice;
+  if(search){mice=mice.filter(function(m){return(m.id||'').toLowerCase().indexOf(search)>-1||(m.toeClip||'').toLowerCase().indexOf(search)>-1||m.genotype.toLowerCase().indexOf(search)>-1||(m.notes||'').toLowerCase().indexOf(search)>-1;});}
+  cnt.textContent='共 '+appData.mice.length+' 只';
+  if(mice.length===0){tbody.innerHTML='';empty.style.display='block';}
+  else{empty.style.display='none';
+    tbody.innerHTML=mice.map(function(m){
+      var sexTag=m.sex==='female'?'tag-female':m.sex==='male'?'tag-male':'tag-unknown';
+      var sexLabel=m.sex==='female'?'♀ 雌':m.sex==='male'?'♂ 雄':'⚧ 未知';
+      return'<tr><td><b>'+(m.id||'未知')+'</b></td><td>'+(m.toeClip||'—')+'</td><td><span class="tag '+sexTag+'">'+sexLabel+'</span></td><td><span class="tag tag-genotype">'+m.genotype+'</span></td><td>'+m.birthDate+'</td><td>'+getMouseAge(m.birthDate)+'</td><td>🏠 '+m.cageId+'</td><td style="color:var(--text-lighter);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+(m.notes||'')+'">'+(m.notes||'—')+'</td><td><button class="btn btn-ghost btn-sm" onclick="editMouse(\''+m.uid+'\')" title="编辑">✏️</button><button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="removeMouse(\''+m.uid+'\')" title="删除">🗑</button></td></tr>';
+    }).join('');
+  }
+}
+function renderCageGrid(){
+  var grid=document.getElementById('cageGrid'),empty=document.getElementById('cageEmpty'),stats=document.getElementById('cageStats');
+  var miceByCage={}; appData.mice.forEach(function(m){if(!miceByCage[m.cageId])miceByCage[m.cageId]=[];miceByCage[m.cageId].push(m);});
+  stats.textContent='共 '+appData.cages.length+' 个笼位 | '+appData.mice.length+' 只小鼠';
+  if(appData.cages.length===0){grid.innerHTML='';empty.style.display='block';}
+  else{empty.style.display='none';
+    grid.innerHTML=appData.cages.map(function(cage){
+      var mice=miceByCage[cage.id]||[],hasMice=mice.length>0,f=mice.filter(function(m){return m.sex==='female';}).length,ml=mice.filter(function(m){return m.sex==='male';}).length;
+      return'<div class="cage-card '+(hasMice?'has-mice':'')+'" onclick="openCageModal('+cage.id+')"><div class="cage-num">🏠 '+cage.id+'</div><div class="cage-mice-preview">'+mice.slice(0,8).map(function(m){return'<span class="mouse-dot '+m.sex+'"></span>';}).join('')+(mice.length>8?'<span style="font-size:10px;">+'+String(mice.length-8)+'</span>':'')+'</div><div class="cage-count">'+(hasMice?'🐭 '+mice.length+' 只 (♀'+f+' ♂'+ml+')':'')+'</div>'+(hasMice?'':'<div class="cage-empty-hint">空笼</div>')+(cage.locationId?'<div class="cage-notes-inline" style="color:var(--accent);font-style:normal;">📍 '+getLocationName(cage.locationId)+'</div>':'')+(cage.notes?'<div class="cage-notes-inline" title="'+cage.notes.replace(/"/g,'&quot;')+'">📝 '+cage.notes+'</div>':'')+'</div>';
+    }).join('');
+  }
+  populateParentSelects();
+}
+function renderLocationGrid(){
+  var grid=document.getElementById('locationGrid'),empty=document.getElementById('locationEmpty'),stats=document.getElementById('locationStats');
+  var cntByLoc={}; appData.cages.forEach(function(c){if(c.locationId)cntByLoc[c.locationId]=(cntByLoc[c.locationId]||0)+1;});
+  var unassigned=appData.cages.filter(function(c){return!c.locationId;}).length;
+  stats.textContent='共 '+appData.locations.length+' 个位置 | '+unassigned+' 个笼位未分配';
+  if(appData.locations.length===0){grid.innerHTML='';empty.style.display='block';}
+  else{empty.style.display='none';
+    grid.innerHTML=appData.locations.map(function(loc){var cnt=cntByLoc[loc.uid]||0;
+      return'<div class="cage-card '+(cnt>0?'has-mice':'')+'" onclick="openLocationModal(\''+loc.uid+'\')"><div class="cage-num">📍 '+loc.name+'</div><div class="cage-count">🏠 '+cnt+' 个笼位</div>'+(loc.notes?'<div class="cage-notes-inline">📝 '+loc.notes+'</div>':'')+(cnt===0?'<div class="cage-empty-hint">暂无笼位</div>':'')+'</div>';
+    }).join('');
+  }
+}
+function populateParentSelects(){
+  var s1=document.getElementById('parent1Select'),s2=document.getElementById('parent2Select');
+  var opts='<option value="">-- 自定义输入 --</option>'+appData.mice.map(function(m){return'<option value="'+m.genotype+'">'+(m.id||'未知')+' ('+m.genotype+') '+(m.sex==='female'?'♀':'♂')+'</option>';}).join('');
+  var c1=s1.value,c2=s2.value; s1.innerHTML=opts; s2.innerHTML=opts; s1.value=c1; s2.value=c2;
+}
+function onParentSelect(n,gt){if(gt){document.getElementById('parent'+n+'Genotype').value=gt;onParentGenotypeInput();}}
+function onParentGenotypeInput(){
+  var p1gt=document.getElementById('parent1Genotype').value.trim(),p2gt=document.getElementById('parent2Genotype').value.trim();
+  if(p1gt){var g=getGametes(p1gt);document.getElementById('parent1Gametes').innerHTML='配子: '+g.map(function(x){return'<span class="gamete-tag">'+x.gamete+' ('+(x.probability*100).toFixed(0)+'%)</span>';}).join(' ');}else document.getElementById('parent1Gametes').innerHTML='';
+  if(p2gt){var g2=getGametes(p2gt);document.getElementById('parent2Gametes').innerHTML='配子: '+g2.map(function(x){return'<span class="gamete-tag">'+x.gamete+' ('+(x.probability*100).toFixed(0)+'%)</span>';}).join(' ');}else document.getElementById('parent2Gametes').innerHTML='';
+}
+
+// ═══════════════ MODALS ═══════════════
+function openCageModal(cageId){
+  var cage=appData.cages.find(function(c){return c.id===cageId;}); if(!cage)return;
+  var mice=appData.mice.filter(function(m){return m.cageId===cageId;});
+  document.getElementById('cageModalTitle').textContent='🏠 笼位 '+cageId+' — '+cage.name;
+  var html='<div class="form-grid" style="margin-bottom:16px;"><div class="form-group"><label>所属位置</label><select id="cageLocationSelect" onchange="saveCageLocation('+cageId+',this.value)"><option value="">未分配</option>'+appData.locations.map(function(l){return'<option value="'+l.uid+'"'+(cage.locationId===l.uid?' selected':'')+'>'+l.name+'</option>';}).join('')+'</select></div><div class="form-group"><label>笼位备注</label><input type="text" id="cageNotesInput" value="'+(cage.notes||'').replace(/"/g,'&quot;')+'" placeholder="添加笼位备注信息…" onchange="saveCageNotes('+cageId+',this.value)"></div></div>';
+  if(mice.length===0){html+='<div class="empty-state"><div class="icon">📦</div><p>该笼位为空</p></div>';}
+  else{
+    html+='<div style="margin-bottom:16px;font-size:14px;color:var(--text-light);">🐭 共 <b>'+mice.length+'</b> 只小鼠 | ♀ <b>'+mice.filter(function(m){return m.sex==='female';}).length+'</b> 只 | ♂ <b>'+mice.filter(function(m){return m.sex==='male';}).length+'</b> 只</div><div class="table-wrap"><table><thead><tr><th>编号</th><th>断脚趾号</th><th>性别</th><th>基因型</th><th>出生日期</th><th>日龄</th><th>备注</th></tr></thead><tbody>';
+    mice.forEach(function(m){
+      html+='<tr><td><b>'+(m.id||'未知')+'</b></td><td>'+(m.toeClip||'—')+'</td><td><span class="tag '+(m.sex==='female'?'tag-female':m.sex==='male'?'tag-male':'tag-unknown')+'">'+(m.sex==='female'?'♀ 雌':m.sex==='male'?'♂ 雄':'⚧ 未知')+'</span></td><td><span class="tag tag-genotype">'+m.genotype+'</span></td><td>'+m.birthDate+'</td><td>'+getMouseAge(m.birthDate)+'</td><td>'+(m.notes||'—')+'</td></tr>';
+    });
+    html+='</tbody></table></div>';
+  }
+  html+='<div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border-light);"><h4 style="margin-bottom:8px;">移动到该笼位</h4><div style="display:flex;gap:8px;align-items:end;"><div class="form-group" style="flex:1;"><select id="moveMouseSelect"><option value="">-- 选择小鼠 --</option>'+appData.mice.map(function(m){return'<option value="'+m.uid+'">'+(m.id||'未知')+' '+(m.toeClip?'['+m.toeClip+'] ':'')+'('+m.genotype+') — 当前笼位 '+m.cageId+'</option>';}).join('')+'</select></div><button class="btn btn-primary btn-sm" onclick="moveMouseToCage('+cageId+')">移动至此</button></div></div><div style="margin-top:12px;"><button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="removeCage('+cageId+');closeCageModal();">🗑 删除此笼位</button></div>';
+  document.getElementById('cageModalBody').innerHTML=html; document.getElementById('cageModal').classList.add('show');
+}
+function closeCageModal(){document.getElementById('cageModal').classList.remove('show');}
+function moveMouseToCage(cageId){
+  var sel=document.getElementById('moveMouseSelect'),muid=sel.value;
+  if(!muid){showToast('请选择小鼠','error');return;}
+  var mouse=appData.mice.find(function(m){return m.uid===muid;}); if(!mouse)return;
+  mouse.cageId=cageId; saveData(); openCageModal(cageId); renderCageGrid(); renderMouseTable();
+  showToast((mouse.id||'未知')+' 已移至笼位 '+cageId,'success');
+}
+
+function openLocationModal(locUid){
+  var loc=appData.locations.find(function(l){return l.uid===locUid;}); if(!loc)return;
+  var cages=appData.cages.filter(function(c){return c.locationId===locUid;});
+  document.getElementById('locationModalTitle').textContent='📍 '+loc.name;
+  var html='<div class="form-grid" style="margin-bottom:16px;"><div class="form-group"><label>位置名称</label><input type="text" id="locEditName" value="'+loc.name.replace(/"/g,'&quot;')+'" onchange="updateLocationName(\''+locUid+'\',this.value)"></div><div class="form-group"><label>备注</label><input type="text" id="locEditNotes" value="'+(loc.notes||'').replace(/"/g,'&quot;')+'" onchange="updateLocationNotes(\''+locUid+'\',this.value)" placeholder="添加备注…"></div></div>';
+  if(cages.length===0){html+='<div class="empty-state"><div class="icon">📦</div><p>该位置下暂无笼位</p></div>';}
+  else{
+    var miceByCage={}; appData.mice.forEach(function(m){if(!miceByCage[m.cageId])miceByCage[m.cageId]=[];miceByCage[m.cageId].push(m);});
+    html+='<div style="margin-bottom:12px;font-size:14px;color:var(--text-light);">🏠 共 <b>'+cages.length+'</b> 个笼位</div><div style="display:flex;flex-direction:column;gap:8px;">';
+    cages.forEach(function(cage){
+      var mice=miceByCage[cage.id]||[],f=mice.filter(function(m){return m.sex==='female';}).length,ml=mice.filter(function(m){return m.sex==='male';}).length;
+      html+='<div style="background:var(--bg);border-radius:var(--radius-sm);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="openCageModal('+cage.id+');closeLocationModal();"><div><b>🏠 笼位 '+cage.id+'</b><span style="font-size:12px;color:var(--text-lighter);margin-left:8px;">'+(cage.notes||'')+'</span></div><div style="font-size:13px;color:var(--text-light);">'+(mice.length>0?'🐭 '+mice.length+' 只 (♀'+f+' ♂'+ml+')':'📦 空笼')+'</div></div>';
+    });
+    html+='</div>';
+  }
+  html+='<div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border-light);"><h4 style="margin-bottom:8px;">将笼位移至该位置</h4><div style="display:flex;gap:8px;align-items:end;"><div class="form-group" style="flex:1;"><select id="moveCageToLocationSelect"><option value="">-- 选择笼位 --</option>'+appData.cages.map(function(c){return'<option value="'+c.id+'">笼位 '+c.id+' '+(c.notes?'— '+c.notes:'')+' (当前: '+getLocationName(c.locationId)+')</option>';}).join('')+'</select></div><button class="btn btn-primary btn-sm" onclick="moveCageToLocation(\''+locUid+'\')">移至此处</button></div></div><div style="margin-top:12px;"><button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="removeLocation(\''+locUid+'\');closeLocationModal();">🗑 删除此位置</button></div>';
+  document.getElementById('locationModalBody').innerHTML=html; document.getElementById('locationModal').classList.add('show');
+}
+function closeLocationModal(){document.getElementById('locationModal').classList.remove('show');}
+
+// ═══════════════ TOAST ═══════════════
+function showToast(msg,type){
+  var c=document.getElementById('toastContainer'),t=document.createElement('div'); t.className='toast '+(type||'success'); t.textContent=msg; c.appendChild(t);
+  setTimeout(function(){t.style.opacity='0';t.style.transition='opacity .3s ease';setTimeout(function(){t.remove();},300);},2500);
+}
+
+// ═══════════════ TAB NAVIGATION ═══════════════
+document.getElementById('navTabs').addEventListener('click',function(e){
+  var tab=e.target.closest('.nav-tab'); if(!tab)return;
+  document.querySelectorAll('.nav-tab').forEach(function(t){t.classList.remove('active');}); tab.classList.add('active');
+  var target=tab.dataset.tab; document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active');});
+  switch(target){
+    case'gene-manager':document.getElementById('panel-gene-manager').classList.add('active');renderGeneManager();break;
+    case'mouse-manager':document.getElementById('panel-mouse-manager').classList.add('active');renderGenotypeSelects();renderMouseTable();break;
+    case'breeding-calc':document.getElementById('panel-breeding-calc').classList.add('active');populateParentSelects();onParentGenotypeInput();break;
+    case'cage-manager':document.getElementById('panel-cage-manager').classList.add('active');renderCageGrid();break;
+    case'location-manager':document.getElementById('panel-location-manager').classList.add('active');renderLocationGrid();break;
+  }
+});
+
+// Modal close handlers
+document.getElementById('cageModal').addEventListener('click',function(e){if(e.target===this)closeCageModal();});
+document.getElementById('locationModal').addEventListener('click',function(e){if(e.target===this)closeLocationModal();});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeCageModal();closeLocationModal();}});
+
+// ═══════════════ REFRESH ALL ═══════════════
+function refreshAll(){
+  renderGeneManager(); renderMouseTable(); renderCageGrid(); renderLocationGrid(); populateParentSelects();
+  var active=document.querySelector('.tab-panel.active');
+  if(active&&active.id==='panel-mouse-manager')renderGenotypeSelects();
+}
+
+// ═══════════════ STARTUP ═══════════════
+loadData(); refreshAll(); renderGenotypeSelects();
+document.getElementById('mouseBirthInput').value=new Date().toISOString().slice(0,10);
+populateToeSelect(document.querySelector('#toeClipSelects .toe-select'));
+console.log('🧬 小鼠基因配型管理系统已就绪 — 基因:'+appData.genes.length+' 小鼠:'+appData.mice.length+' 笼位:'+appData.cages.length+' 位置:'+appData.locations.length);
+</script>
+</body>
+</html>
